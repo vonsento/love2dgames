@@ -1,107 +1,81 @@
-function love.load()
-sprites = {}
-sprites.background = love.graphics.newImage('sprites/background.png')
-sprites.bullet = love.graphics.newImage('sprites/bullet.png')
-sprites.player = love.graphics.newImage('sprites/player.png')
-sprites.zombie = love.graphics.newImage('sprites/zombie.png')
+local utility = require("utility");
 
-player = {}
-player.x = love.graphics.getWidth() / 2
-player.y = love.graphics.getHeight() / 2
-player.speed = 180
+local sprites = {};
+-- data type: table
+-- the graphics
 
+sprites.background = love.graphics.newImage('sprites/background.png');
+sprites.bullet = love.graphics.newImage('sprites/bullet.png');
+sprites.player = love.graphics.newImage('sprites/player.png');
+sprites.zombie = love.graphics.newImage('sprites/zombie.png');
 
-zombies = {}
-bullets = {}
-end
+local zombies = {};
+-- data type: table
+
+local bullets = {};
+-- data type: table
 
 function love.update(dt)
     if love.keyboard.isDown("d") then
-        player.x = player.x + player.speed*dt
+        utility.player.x = utility.player.x + utility.player.speed*dt;
     end
+
     if love.keyboard.isDown("a") then
-        player.x = player.x - player.speed*dt
-
+        utility.player.x = utility.player.x - utility.player.speed*dt;
     end
+
     if love.keyboard.isDown("w") then
-        player.y = player.y - player.speed*dt
-
+        utility.player.y = utility.player.y - utility.player.speed*dt;
     end
+
     if love.keyboard.isDown("s") then
-        player.y = player.y + player.speed*dt
-
+        utility.player.y = utility.player.y + utility.player.speed*dt;
     end
 
-    for i,z in ipairs(zombies) do
-        z.x = z.x + (math.cos( zombiePlayerAngle(z) ) * z.speed * dt)
-        z.y = z.y + (math.sin( zombiePlayerAngle(z) ) * z.speed * dt)
+    for i, z in ipairs(zombies) do
+        z.x = z.x + (math.cos( utility.zombie_player_angle(z) ) * z.speed * dt);
+        z.y = z.y + (math.sin( utility.zombie_player_angle(z) ) * z.speed * dt);
 
-        if distanceBetween(z.x, z.y, player.x, player.y) < 100 then
-            for i,z in ipairs(zombies) do
-                zombies[i]  = nil
+        if utility.get_2d_distance(z.x, z.y, utility.player.x, utility.player.y) < 100 then
+            for i, z in ipairs(zombies) do
+                zombies[i] = nil;
             end
         end
     end
 
-    for i,b in ipairs(bullets) do
-b.x = b.x + (math.cos( b.direction) * b.speed * dt)
-b.y = b.y + (math.sin( b.direction) * b.speed * dt)
+    for i, b in ipairs(bullets) do
+    b.x = b.x + (math.cos( b.direction) * b.speed * dt);
+    b.y = b.y + (math.sin( b.direction) * b.speed * dt);
     end
 end
 
 function love.draw()
-love.graphics.draw(sprites.background, 0, 0)
+    love.graphics.draw(sprites.background, 0, 0);
 
-love.graphics.draw(sprites.player, player.x, player.y, playerMouseAngle(), nil, nil, sprites.player:getWidth()/2, sprites.player:getHeight()/2)
+    local player_width = sprites.player:getWidth();
+    local player_height = sprites.player:getHeight();
+    love.graphics.draw(sprites.player, utility.player.x, utility.player.y, utility.player_mouse_angle(), nil, nil, player_width/2, player_height/2);
 
-for i,z in ipairs(zombies) do
- love.graphics.draw(sprites.zombie, z.x, z.y, zombiePlayerAngle(z),nil, nil, sprites.zombie:getWidth()/2, sprites.zombie:getHeight()/2)
+    local zombie_width = sprites.zombie:getWidth();
+    local zombie_height = sprites.zombie:getHeight();
+
+    for i, z in ipairs(zombies) do
+        love.graphics.draw(sprites.zombie, z.x, z.y, utility.zombie_player_angle(z), nil, nil, zombie_width/2, zombie_height/2);
     end
 
-for i,b in ipairs(bullets) do
-    love.graphics.draw(sprites.bullet, b.x, b.y)
-end
-
+    for i, b in ipairs(bullets) do
+        love.graphics.draw(sprites.bullet, b.x, b.y);
+    end
 end
 
 function love.keypressed ( key )
     if key == "space" then
-    spawnZombie()
+        utility.spawn_zombie(zombies);
     end
 end
 
 function love.mousepressed(x, y, button)
     if button == 1 then
-        spawnBullet()
+        utility.spawn_bullet(bullets);
     end
-end
-
-function playerMouseAngle()
-    return math.atan2( player.y - love.mouse.getY(), player.x - love.mouse.getX()) + math.pi
-end
-
-function zombiePlayerAngle(enemy)
-    return math.atan2( player.y - enemy.y, player.x - enemy.x) 
-end
-
-function spawnZombie()
-    local zombie = {}
-    zombie.x = math.random(0, love.graphics.getWidth())
-    zombie.y = math.random(0, love.graphics.getHeight())
-    zombie.speed = 100
-    table.insert(zombies, zombie)
-end
-    
-function spawnBullet()
-    local bullet = {}
-    bullet.x = player.x
-    bullet.y = player.y
-    bullet.speed = 500
-    bullet.direction = playerMouseAngle()
-    table.insert(bullets, bullet)
-
-end
-
-function distanceBetween (x1,y1,x2,y2)
-        return math.sqrt( (x2 - x1)^2 + (y2 - y1)^2 )
 end

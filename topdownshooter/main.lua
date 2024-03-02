@@ -5,7 +5,7 @@ local sprites = {};
 -- the graphics
 
 math.randomseed(os.time());
---random time from persons computer to generate a seed
+--time from persons computer to generate a seed
 
 sprites.background = love.graphics.newImage('sprites/background.png');
 sprites.bullet = love.graphics.newImage('sprites/bullet.png');
@@ -27,6 +27,15 @@ max_time = 2;
 -- data type: int 
 timer = max_time;
 
+local game_time = 0.0;
+-- data type: double
+
+local last_damage_time = 0.0;
+-- data type: double
+
+local last_zombie_time = 0.0;
+-- data type: double
+
 function love.update(dt)
     if game_state == 2 then    
         if love.keyboard.isDown("d") and utility.player.x < love.graphics.getWidth() then
@@ -46,19 +55,25 @@ function love.update(dt)
         end
     end
 
+    game_time = game_time + dt;
+    
     for i, z in ipairs(zombies) do
         z.x = z.x + (math.cos( utility.zombie_player_angle(z) ) * z.speed * dt);
         z.y = z.y + (math.sin( utility.zombie_player_angle(z) ) * z.speed * dt);
 
+        if game_time - last_damage_time > 2 then
+
         if utility.get_2d_distance(z.x, z.y, utility.player.x, utility.player.y) < 30 then
-            for i, z in ipairs(zombies) do
-                zombies[i] = nil;
-                game_state = 1
-                utility.player.x = love.graphics.getWidth() /2
-                utility.player.y = love.graphics.getHeight() /2
+            utility.player.current_health = utility.player.current_health - (utility.player.max_health * 0.5);
+            utility.player.speed = 400;
+            last_damage_time = game_time;
+            if utility.player.current_health <= 0 then
+                zombies[i] = nil; 
+                game_state = 1;
+                return;
             end
         end
-    
+    end
         for i = #bullets, 1, -1 do
             local b = bullets[i]
             if b.x < 0 or b.y < 0 or b.x > love.graphics.getWidth() or b.y > love.graphics.getHeight() then
@@ -74,9 +89,10 @@ function love.update(dt)
                 end
             end
         end
+        
            for i = #zombies,1,-1 do
-            local z = zombies[i]
-                if z.dead == true then
+            local h = zombies[i]
+                if h.dead == true then
                     table.remove (zombies, i);
            end
         end
@@ -88,14 +104,11 @@ function love.update(dt)
         end
    
         if game_state == 2 then
-            timer = timer - dt
-            if timer <= 0 then
+            if game_time - last_zombie_time > 1 then
+                last_zombie_time = game_time
                 utility.spawn_zombie(zombies)
-                max_time = 0.95 * max_time
-                timer = max_time
             end
         end
-   
     end
 
     for i, b in ipairs(bullets) do
@@ -112,6 +125,10 @@ function love.draw()
         love.graphics.printf("Click to begin", 0, 50, love.graphics.getWidth(), "center");
     end
     love.graphics.printf("Score: " .. score, 0, love.graphics.getHeight() - 100, love.graphics.getWidth(), "center");
+
+    love.graphics.printf("Hp: " .. utility.player.current_health, 0, love.graphics.getHeight() - 100, love.graphics.getWidth(), "right");
+
+    love.graphics.printf("Timer: " .. math.ceil(game_time), 0, love.graphics.getHeight() - 100, love.graphics.getWidth(), "left");
 
     local player_width = sprites.player:getWidth();
     local player_height = sprites.player:getHeight();

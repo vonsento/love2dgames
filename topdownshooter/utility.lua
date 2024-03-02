@@ -5,6 +5,8 @@ local player = {};
 player.x = love.graphics.getWidth() / 2;
 player.y = love.graphics.getHeight() / 2;
 player.speed = 180;
+player.current_health = 100;
+player.max_health = 100;
 
 local function player_mouse_angle()
     return math.atan2( player.y - love.mouse.getY(), player.x - love.mouse.getX()) + math.pi;

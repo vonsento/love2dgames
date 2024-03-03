@@ -1,3 +1,6 @@
+local screen_width = love.graphics.getWidth();
+local screen_height = love.graphics.getHeight();
+
 local utility = require ("utility");
 local player = require ("player");
 local zombie = require ("zombie");
@@ -15,7 +18,7 @@ sprites.bullet = love.graphics.newImage('sprites/bullet.png');
 sprites.player = love.graphics.newImage('sprites/player.png');
 sprites.zombie = love.graphics.newImage('sprites/zombie.png');
 
-local my_font = love.graphics.newFont(30)
+local my_font = love.graphics.newFont(30);
 
 local game_state = 1;
 
@@ -25,72 +28,97 @@ local score = 0;
 -- data type: double
 local game_time = 0.0;
 
-function love.update(dt)
+function love.update(dt)    
     if game_state == 1 then    
         return;
     end
 
-    player.move();
-
     game_time = game_time + dt;
-    
-    for i, z in ipairs(zombies) do
-        z.x = z.x + (math.cos( utility.zombie_player_angle(z) ) * z.speed * dt);
-        z.y = z.y + (math.sin( utility.zombie_player_angle(z) ) * z.speed * dt);
+    player.move(dt);
 
-        if game_time - last_damage_time > 2 then
+    local game_dificulty = utility.get_game_dificulty(score);
 
-        if utility.get_2d_distance(z.x, z.y, utility.player.x, utility.player.y) < 30 then
-            utility.player.current_health = utility.player.current_health - (utility.player.max_health * 0.5);
-            utility.player.speed = 400;
-            last_damage_time = game_time;
-            if utility.player.current_health <= 0 then
-                zombies[i] = nil; 
-                game_state = 1;
-                return;
-            end
-        end
+    if game_time - zombie.last_spawn_time > game_dificulty then
+        zombie.spawn(zombie.list, score);
+        zombie.last_spawn_time = game_time;        
     end
-        for i = #bullets, 1, -1 do
-            local b = bullets[i]
-            if b.x < 0 or b.y < 0 or b.x > love.graphics.getWidth() or b.y > love.graphics.getHeight() then
-                table.remove(bullets, i)
-            end
-        end
-         for i,z in ipairs(zombies) do
-            for j,b in ipairs(bullets) do
-                if utility.get_2d_distance(z.x, z.y, b.x, b.y) < 20 then
-                    z.dead = true;
-                    b.dead = true;
-                    score = score + 1;
+
+    -- store player position here to use it multiple times
+    local player_position = player.get_position();
+    
+    -- looping thru all zombies and moving them forward
+    for i, unit in ipairs(zombie.list) do
+        local unit_position = utility.get_position(unit);
+        local zombie_angle_player = utility.get_angle(unit_position, player_position);
+
+        unit.x = unit.x + (math.cos( zombie_angle_player ) * unit.movement_speed * dt);
+        unit.y = unit.y + (math.sin( zombie_angle_player ) * unit.movement_speed * dt);
+    end
+
+    if game_time - player.last_damage_time > 1.5 then
+
+        -- looping thru all zombies and checking if any of them collide with player
+        for i, unit in ipairs(zombie.list) do
+            local unit_position = utility.get_position(unit);
+            local distance = utility.get_distance(player_position, unit_position);
+            
+            if distance < 30.0 then
+                player.movement_speed = 400;
+                player.last_damage_time = game_time;
+                player.current_health = player.current_health - (player.max_health * 0.5);
+
+                if player.current_health <= 0 then
+                    zombie.list = {};
+                    bullet.list = {};
+                    game_state = 1;
+                    return;
                 end
             end
         end
-        
-           for i = #zombies,1,-1 do
-            local h = zombies[i]
-                if h.dead == true then
-                    table.remove (zombies, i);
-           end
+    end    
+
+    -- move bullets forward each frame
+    for i, unit in ipairs(bullet.list) do
+        unit.x = unit.x + (math.cos( unit.direction) * unit.speed * dt);
+        unit.y = unit.y + (math.sin( unit.direction) * unit.speed * dt);
+    end
+
+    -- remove bullets outside of screen
+    for i = #bullet.list, 1, -1 do
+        local unit = bullet.list[i]
+        local is_out_of_screen = unit.x < 0 or unit.y < 0 or unit.x > screen_width or unit.y > screen_height;
+        if is_out_of_screen then
+            table.remove(bullet.list, i)
         end
-        for i = #bullets,1,-1 do
-            local b = bullets[i]
-            if b.dead == true then
-             table.remove (bullets, i);
-            end
-        end
-   
-        if game_state == 2 then
-            if game_time - last_zombie_time > 1 then
-                last_zombie_time = game_time
-                utility.spawn_zombie(zombies)
+    end
+
+    for i,z in ipairs(zombie.list) do
+        local zombie_position = utility.get_position(z);
+
+        for j,b in ipairs(bullet.list) do
+            local bullet_position = utility.get_position(b);
+            local distance = utility.get_distance(zombie_position, bullet_position);
+
+            if distance < 20.0 then
+                b.dead = true;
+                z.current_health = 0.0;                
+                score = score + 1;
             end
         end
     end
 
-    for i, b in ipairs(bullets) do
-    b.x = b.x + (math.cos( b.direction) * b.speed * dt);
-    b.y = b.y + (math.sin( b.direction) * b.speed * dt);
+    for i = #zombie.list,1,-1 do
+        local unit = zombie.list[i]
+        if zombie.is_dead(unit) then
+            table.remove (zombie.list, i);
+        end
+    end
+
+    for i = #bullet.list,1,-1 do
+        local b = bullet.list[i]
+        if b.dead == true then
+            table.remove (bullet.list, i);
+        end
     end
 end
 
@@ -99,43 +127,96 @@ function love.draw()
 
     if game_state == 1 then
         love.graphics.setFont(my_font)
-        love.graphics.printf("Click to begin", 0, 50, love.graphics.getWidth(), "center");
+        love.graphics.printf("Press Space To Begin", 0, 50, screen_width, "center");
     end
-    love.graphics.printf("Score: " .. score, 0, love.graphics.getHeight() - 100, love.graphics.getWidth(), "center");
 
-    love.graphics.printf("Hp: " .. utility.player.current_health, 0, love.graphics.getHeight() - 100, love.graphics.getWidth(), "right");
+    -- draw game time on left
+    love.graphics.printf("Timer: " .. math.ceil(game_time), 0, screen_height - 100, screen_width, "left");
 
-    love.graphics.printf("Timer: " .. math.ceil(game_time), 0, love.graphics.getHeight() - 100, love.graphics.getWidth(), "left");
+    -- draw player score on center
+    love.graphics.printf("Score: " .. score, 0, screen_height - 100, screen_width, "center");
 
+    -- draw player current health on right
+    love.graphics.printf("Hp: " .. player.current_health, 0, screen_height - 100, screen_width, "right");    
+
+    -- store player position here to use it multiple times
+    local player_position = player.get_position();
+
+    -- create a table holding current cursor position x and y
+    local cursor_position = { };
+    cursor_position.x = love.mouse.getX();
+    cursor_position.y = love.mouse.getY();
+
+    -- store the player sprite current width and height
     local player_width = sprites.player:getWidth();
     local player_height = sprites.player:getHeight();
-    love.graphics.draw(sprites.player, utility.player.x, utility.player.y, utility.player_mouse_angle(), nil, nil, player_width/2, player_height/2);
 
+    -- data type: double
+    -- this is angle of player towards cursor position
+    local player_angle_cursor = utility.get_angle(player_position, cursor_position);
+    love.graphics.draw(sprites.player, player_position.x, player_position.y, player_angle_cursor, nil, nil, player_width * 0.5, player_height * 0.5);
+
+    -- store the zombie sprite current width and height
     local zombie_width = sprites.zombie:getWidth();
     local zombie_height = sprites.zombie:getHeight();
 
-    for i, z in ipairs(zombies) do
-        love.graphics.draw(sprites.zombie, z.x, z.y, utility.zombie_player_angle(z), nil, nil, zombie_width/2, zombie_height/2);
+    for i, unit in ipairs(zombie.list) do
+        local unit_position = utility.get_position(unit);
+        local zombie_angle_player = utility.get_angle(unit_position, player_position);
+        love.graphics.draw(sprites.zombie, unit_position.x, unit_position.y, zombie_angle_player, nil, nil, zombie_width * 0.5, zombie_height * 0.5);
     end
 
-    for i, b in ipairs(bullets) do
-        love.graphics.draw(sprites.bullet, b.x, b.y, nil, 0.5, 0.5, sprites.bullet:getWidth()/2, sprites.bullet:getHeight()/2);
+    -- store the bullet sprite current width and height
+    local bullet_width = sprites.bullet:getWidth();
+    local bullet_height = sprites.bullet:getHeight();
+
+    for i, unit in ipairs(bullet.list) do
+        love.graphics.draw(sprites.bullet, unit.x, unit.y, nil, 0.5, 0.5, bullet_width * 0.5, bullet_height * 0.5);
     end
 end
 
 function love.keypressed ( key )
-    if key == "space" then
-        utility.spawn_zombie(zombies);
+    if key ~= "space" then
+        return;
     end
+
+    if game_state ~= 1 then
+        return;
+    end
+
+    -- switch from game state 1 to 2 (game starts)
+
+    -- reset timers
+    game_time = 0;
+    zombie.last_spawn_time = 0.0;
+    player.last_damage_time = 0.0;
+
+    -- reset score
+    score = 0;
+
+    -- start game
+    game_state = 2;
+
+    player.current_health = player.max_health;
 end
 
 function love.mousepressed(x, y, button)
-    if button == 1 and game_state == 2 then
-        utility.spawn_bullet(bullets);
-    elseif button == 1 and game_state == 1 then
-        game_state = 2;
-        max_time = 2;
-        timer = max_time;
-        score = 0;
+    if game_state ~= 2 then
+        return;
     end
+
+    if button ~= 1 then
+        return;
+    end
+
+    -- store player position here to use it multiple times
+    local player_position = player.get_position();
+
+    -- create a table holding current cursor position x and y
+    local cursor_position = { };
+    cursor_position.x = love.mouse.getX();
+    cursor_position.y = love.mouse.getY();
+
+    local bullet_angle_cursor = utility.get_angle(player_position, cursor_position);
+    bullet.spawn(bullet.list, player, bullet_angle_cursor);
 end

@@ -5,7 +5,7 @@ local list = {};
 local last_spawn_time = 0.0;
 
 -- data type: bool
-local is_dead(table)
+local function is_dead(table)
     if table.current_health <= 0.0 then
         return true;
     end
@@ -14,9 +14,9 @@ local is_dead(table)
 end
 
 -- data type: void
-local generate_random_position(table) 
-    local height = love.graphics.getHeight();
+local function generate_random_position(table) 
     local width = love.graphics.getWidth();
+    local height = love.graphics.getHeight();
 
     local random_side = math.random(1, 4);
     if random_side == 1 then
@@ -34,17 +34,43 @@ local generate_random_position(table)
     end
 end
 
+local function get_dynamic_speed(score)
+    local movement_speed = 180;
+
+    if score > 20 then
+        movement_speed = 200;
+    end
+
+    if score > 40 then
+        movement_speed = 220;
+    end
+
+    if score > 70 then
+        movement_speed = 240;
+    end
+    
+    if score > 90 then
+        movement_speed = 250;
+    end
+
+    return movement_speed;
+end
+
 -- data type: void
-local spawn(list)
+local function spawn(list, score)
     local zombie = {};
-    zombie.movement_speed = 100;
+    zombie.movement_speed = get_dynamic_speed(score);
     zombie.max_health = 50;
     zombie.current_health = 50;
 
     zombie.x = 0.0;
     zombie.y = 0.0;
     generate_random_position(zombie);
-    
+
+    zombie.position = {};
+    zombie.position.x =  zombie.x;
+    zombie.position.y =  zombie.y;
+
     table.insert(list, zombie);
 end
 
@@ -54,4 +80,5 @@ return
     is_dead = is_dead,
     generate_random_position = generate_random_position,
     spawn = spawn,
+    last_spawn_time = last_spawn_time,
 }

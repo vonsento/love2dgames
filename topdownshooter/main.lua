@@ -74,6 +74,7 @@ function love.update(dt)
             end
         end
     end
+    
         for i = #bullets, 1, -1 do
             local b = bullets[i]
             if b.x < 0 or b.y < 0 or b.x > love.graphics.getWidth() or b.y > love.graphics.getHeight() then

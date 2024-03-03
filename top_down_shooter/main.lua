@@ -1,3 +1,5 @@
+love.window.setTitle( "Zombie Game" )
+
 local screen_width = love.graphics.getWidth();
 local screen_height = love.graphics.getHeight();
 
@@ -66,7 +68,6 @@ function love.update(dt)
                 player.movement_speed = 400;
                 player.last_damage_time = game_time;
                 player.current_health = player.current_health - (player.max_health * 0.5);
-
                 if player.current_health <= 0 then
                     zombie.list = {};
                     bullet.list = {};

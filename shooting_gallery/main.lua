@@ -1,3 +1,5 @@
+love.window.setTitle("Shooting Gallery by Venus")
+
 local target = {};   
 -- data type: table
 -- this is the target that we will shoot

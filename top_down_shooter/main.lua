@@ -108,6 +108,15 @@ function love.update(dt)
         end
     end
 
+    for i, unit in ipairs(zombie.list) do
+        local zombie_position = utility.get_position(unit);
+        local distance = utility.get_distance(zombie_position, player_position);
+        local is_close = distance < 30.0;
+        if is_close then
+            unit.current_health = 0;
+        end
+    end
+
     for i = #zombie.list,1,-1 do
         local unit = zombie.list[i]
         if zombie.is_dead(unit) then

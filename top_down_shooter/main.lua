@@ -154,9 +154,14 @@ function love.draw()
 
     -- data type: double
     -- this is angle of player towards cursor position
-    local player_angle_cursor = utility.get_angle(player_position, cursor_position);
-    love.graphics.draw(sprites.player, player_position.x, player_position.y, player_angle_cursor, nil, nil, player_width * 0.5, player_height * 0.5);
+    local player_angle_cursor = utility.get_angle(player_position, cursor_position); 
+    if player.current_health < 100 then
+        love.graphics.setColor (1, 0, 0);
+    end
 
+    love.graphics.draw(sprites.player, player_position.x, player_position.y, player_angle_cursor, nil, nil, player_width * 0.5, player_height * 0.5);
+    love.graphics.setColor (1, 1, 1);
+    
     -- store the zombie sprite current width and height
     local zombie_width = sprites.zombie:getWidth();
     local zombie_height = sprites.zombie:getHeight();

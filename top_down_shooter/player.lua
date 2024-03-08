@@ -3,11 +3,8 @@ local screen_height = love.graphics.getHeight();
 
 local player = {};
 
--- data type: double
-player.x = screen_width * 0.5;
 
--- data type: double
-player.y = screen_height * 0.5; 
+
 
 player.position = {};
 player.position.x = player.x;

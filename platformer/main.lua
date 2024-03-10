@@ -84,8 +84,8 @@ function spawnPlatform(x, y, width, height)
     end
 end
 
-function loadMap()
-    gameMap = sti("maps/LEVEL_1.lua")
+function loadMap(mapName) 
+    gameMap = sti("maps/" .. mapName .. "LEVEL_2.lua")
     for i, obj in pairs(gameMap.layers["Platforms"].objects) do
         spawnPlatform(obj.x, obj.y, obj.width, obj.height)
     end
